@@ -30,6 +30,24 @@ def get_points_extents(points):
 		if y > maxy: maxy = y
 	return minx, miny, maxx, maxy
 
+def get_sun_position(t):
+	# adapted from http://www.stargazing.net/kepler/sun.html
+	days = (t - datetime.datetime(2000,1,1)).total_seconds() / 60 / 60 / 24 - .5
+	# mean longitude of the Sun
+	L = (280.461 + .9856474 * days) * RAD % (2*math.pi)
+	# mean anomaly of the Sun
+	g = (357.528 + .9856003 * days) * RAD
+	# ecliptic longitude of the Sun
+	lam = L + (1.915 * math.sin(g) + .02 * math.sin(2 * g)) * RAD
+	# obliquity of the ecliptic
+	obliq = (23.439 - .0000004 * days) * RAD
+	# find the RA and DEC of the Sun
+	alpha = (math.atan2(math.cos(obliq) * math.sin(lam), math.cos(lam))) % (2*math.pi)
+	delta = math.asin(math.sin(obliq) * math.sin(lam))
+	# find the equation of time
+	equation = (L - alpha) / RAD * 4
+	return -delta, -(t.hour+(t.minute+equation)/60)/24 * 2*math.pi
+
 # map projections
 
 def project_rect(x, y):
@@ -134,6 +152,13 @@ class WorldView(Gtk.Widget):
 		self.queue_draw()
 	show_names = property(_get_show_names, _set_show_names)
 
+	def _get_show_day_night(self):
+		return self._show_day_night
+	def _set_show_day_night(self, b):
+		self._show_day_night = b
+		self.queue_draw()
+	show_day_night = property(_get_show_day_night, _set_show_day_night)
+
 	def do_realize(self):
 		self.set_realized(True)
 		a = Gdk.WindowAttr()
@@ -234,6 +259,40 @@ class WorldView(Gtk.Widget):
 				cr.set_source_rgb(*r.color)
 				self.draw_text_box(cr, lines)
 	
+	def draw_day_night(self, cr):
+		lat, lon = get_sun_position(self.time)
+
+		# calc boundary points
+		dn = []
+		for p in range(0, 360, 2):
+			p *= RAD
+			a = -math.sin(lat)*math.sin(p)
+			x = a*math.cos(lon) - math.sin(lon)*math.cos(p)
+			y = a*math.sin(lon) + math.cos(lon)*math.cos(p)
+			dn.append((math.atan2(y,x)/RAD, math.asin(math.cos(lat)*math.sin(p))/RAD))
+		dn.sort(key=lambda pt: pt[0])
+
+		# draw
+		edgey = (dn[0][1]+dn[-1][1])/2
+		latsign = 1 if lat > 0 else -1
+		cr.scale(1, -1)
+		# left side
+		cr.move_to(*self.projection(-180, 90*latsign)[:2])
+		for y in range(90*latsign, round(edgey), -OUTLINE_STEP*latsign):
+			cr.line_to(*self.projection(-180, y)[:2])
+		cr.line_to(*self.projection(-180, edgey)[:2])
+		# boundary
+		for x, y in dn:
+			cr.line_to(*self.projection(x, y)[:2])
+		# right side
+		for y in range(round(edgey), 90*latsign, OUTLINE_STEP*latsign):
+			cr.line_to(*self.projection(180, y)[:2])
+		cr.line_to(*self.projection(180, 90*latsign)[:2])
+		# fill shadow
+		cr.close_path()
+		cr.set_source_rgba(0,0,0,.3)
+		cr.fill()
+
 	def configure_cairo(self, cr):
 		cr.set_line_width(.3)
 		cr.set_font_face(cr.select_font_face('sans-serif'))
@@ -279,6 +338,7 @@ class WorldView(Gtk.Widget):
 			cr.set_source_rgb(.8, .8, .8)
 			cr.move_to(x*.9, bottom*.9)
 			self.draw_text_box(cr, [(self.time+datetime.timedelta(days=d)).strftime('%Y-%m-%d')])
+		if self.show_day_night: self.draw_day_night(cr)
 
 GObject.type_register(WorldView)
 

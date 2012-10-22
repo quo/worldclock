@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 # TODO
-# show day/night boundary
 # draw map in bg thread
 # timezone dropdown (+ dst toggle) in datetimeentry (click on map -> set to clicked zone)
 # fullscreen button
@@ -35,6 +34,12 @@ def on_datetime_changed(entry):
 	world.time = entry.time
 tb_datetime.connect('value-changed', on_datetime_changed)
 
+tb_day_night = Gtk.ToggleToolButton()
+tb_day_night.set_label('Show day/night')
+def on_day_night_toggled(toggle):
+	world.show_day_night = toggle.get_active()
+tb_day_night.connect('toggled', on_day_night_toggled)
+
 tb_names = Gtk.ToggleToolButton()
 tb_names.set_label('Show names')
 def on_names_toggled(toggle):
@@ -58,7 +63,7 @@ tb_projection.pack_start(text, True)
 tb_projection.add_attribute(text, 'text', 0)
 
 tb = Gtk.Toolbar()
-for c in [tb_now, tb_datetime, Gtk.SeparatorToolItem(), tb_names, tb_projection]:
+for c in [tb_now, tb_datetime, Gtk.SeparatorToolItem(), tb_day_night, tb_names, tb_projection]:
 	if not isinstance(c, Gtk.ToolItem):
 		ti = Gtk.ToolItem()
 		ti.add(c)
@@ -93,6 +98,7 @@ def set_current_time():
 
 # defaults
 tb_now.set_active(True)
+tb_day_night.set_active(True)
 tb_names.set_active(False)
 tb_projection.set_active(0)
 
