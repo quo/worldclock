@@ -78,7 +78,7 @@ class TimeZone:
 		self.tzid = tzid
 		self.polygons = polygons
 		try:
-			self.tz = pytz.timezone(tzid)
+			self.tz = pytz.timezone(tzid) if tzid else None
 		except:
 			sys.stderr.write('Unknown time zone: %r\n' % tzid)
 			self.tz = None

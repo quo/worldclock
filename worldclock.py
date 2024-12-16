@@ -8,18 +8,19 @@
 # map dragging
 
 # show window asap, then continue loading:
+import gi
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 win = Gtk.Window()
 win.set_title('World clock')
 win.set_default_size(1000, 550)
 win.connect('destroy', Gtk.main_quit)
-win.set_has_resize_grip(False)
 win.set_position(Gtk.WindowPosition.CENTER)
 win.show()
 while Gtk.events_pending(): Gtk.main_iteration()
 
 import gzip, pickle, datetime
-from gi.repository import GObject, Gdk
+from gi.repository import GLib, Gdk
 import worldview, datetimeentry
 
 tb_now = Gtk.ToggleToolButton()
@@ -68,7 +69,7 @@ for c in [tb_now, tb_datetime, Gtk.SeparatorToolItem(), tb_day_night, tb_names, 
 		ti = Gtk.ToolItem()
 		ti.add(c)
 		c = ti
-	c.set_margin_right(4)
+	c.set_margin_end(4)
 	tb.insert(c, -1)
 
 world = worldview.WorldView()
@@ -89,12 +90,12 @@ timer_source = None
 def set_current_time():
 	global timer_source
 	if timer_source is not None:
-		GObject.source_remove(timer_source)
+		GLib.source_remove(timer_source)
 		timer_source = None
 	if tb_now.get_active():
-		now = datetime.datetime.utcnow()
+		now = datetime.datetime.now(datetime.UTC)
 		tb_datetime.time = now
-		timer_source = GObject.timeout_add(60100 - now.second * 1000, set_current_time)
+		timer_source = GLib.timeout_add(60100 - now.second * 1000, set_current_time)
 
 # defaults
 tb_now.set_active(True)
