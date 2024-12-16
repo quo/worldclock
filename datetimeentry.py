@@ -54,7 +54,7 @@ class DateTimeEntry(Gtk.HBox):
 	def _get_time(self):
 		return datetime.datetime(
 			self.year.get_value_as_int(), self.month.get_value_as_int(), self.day.get_value_as_int(),
-			self.hour.get_value_as_int(), self.minute.get_value_as_int()
+			self.hour.get_value_as_int(), self.minute.get_value_as_int(), tzinfo=datetime.UTC
 		)
 	def _set_time(self, t):
 		self.year.set_value(t.year)

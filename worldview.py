@@ -1,4 +1,4 @@
-import sys, datetime, math, cairo, pytz
+import sys, datetime, math, cairo, zoneinfo
 from gi.repository import GObject, Gtk, Gdk
 
 OUTLINE_STEP = 5
@@ -30,9 +30,10 @@ def get_points_extents(points):
 		if y > maxy: maxy = y
 	return minx, miny, maxx, maxy
 
+Y2K = datetime.datetime(2000,1,1,tzinfo=datetime.UTC)
 def get_sun_position(t):
 	# adapted from http://www.stargazing.net/kepler/sun.html
-	days = (t - datetime.datetime(2000,1,1)).total_seconds() / 60 / 60 / 24 - .5
+	days = (t - Y2K).total_seconds() / 60 / 60 / 24 - .5
 	# mean longitude of the Sun
 	L = (280.461 + .9856474 * days) * RAD % (2*math.pi)
 	# mean anomaly of the Sun
@@ -78,16 +79,18 @@ class TimeZone:
 		self.tzid = tzid
 		self.polygons = polygons
 		try:
-			self.tz = pytz.timezone(tzid) if tzid else None
+			self.tz = zoneinfo.ZoneInfo(tzid) if tzid else None
 		except:
 			sys.stderr.write('Unknown time zone: %r\n' % tzid)
 			self.tz = None
 	def time(self, utc):
+		if utc.tzinfo is not datetime.UTC: raise ValueError('expected UTC datetime, got %r' % utc.tzinfo)
 		if self.tz is None: return None
-		return self.tz.fromutc(utc).replace(tzinfo=None)
+		return utc.astimezone(self.tz).replace(tzinfo=None)
 	def name(self, utc):
+		if utc.tzinfo is not datetime.UTC: raise ValueError('expected UTC datetime, got %r' % utc.tzinfo)
 		if self.tz is None: return None
-		return self.tz.fromutc(utc).tzname()
+		return utc.astimezone(self.tz).tzname()
 
 # A region is a collection of time zones with the same local time at a specific point in time
 class Region:
@@ -106,8 +109,9 @@ def get_regions(utc, timezones, names):
 	groups = {}
 	for tz in timezones:
 		groups.setdefault((tz.time(utc), tz.name(utc) if names else None), []).append(tz)
+	utc_notz = utc.replace(tzinfo=None)
 	return sorted(
-		(Region(None if t is None else t-utc, nm, zg) for (t, nm), zg in groups.items()),
+		(Region(None if t is None else t-utc_notz, nm, zg) for (t, nm), zg in groups.items()),
 		key=lambda r: (r.offset or datetime.timedelta(), r.name or '')
 	)
 
@@ -116,7 +120,7 @@ class WorldView(Gtk.Widget):
 	def __init__(self):
 		Gtk.Widget.__init__(self)
 		self.add_events(Gdk.EventMask.EXPOSURE_MASK)
-		self._time = datetime.datetime(1970, 1, 1)
+		self._time = datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC)
 		self._projection = project_rect
 		self._timezones = []
 		self._show_names = self._show_day_night = False

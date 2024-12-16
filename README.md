@@ -9,7 +9,6 @@ Dependencies:
 
 - Python 3
 - GTK+ 3
-- pytz
 
 To regenerate the map data using convert.py you also need:
 
