@@ -14,4 +14,6 @@ Dependencies:
 To regenerate the map data using convert.py you also need:
 
 - pyshp
-- tz_world.zip from http://efele.net/maps/tz/world/
+- Shapely
+- timezones.shapefile.zip from https://github.com/evansiroky/timezone-boundary-builder/releases
+- land polygons shapefile, e.g. from https://osmdata.openstreetmap.de/data/land-polygons.html
