@@ -19,7 +19,7 @@ win.set_position(Gtk.WindowPosition.CENTER)
 win.show()
 while Gtk.events_pending(): Gtk.main_iteration()
 
-import gzip, pickle, datetime
+import sys, os.path, gzip, pickle, datetime
 from gi.repository import GLib, Gdk
 import worldview, datetimeentry
 
@@ -80,7 +80,7 @@ v.pack_start(world, True, True, 0)
 win.add(v)
 win.show_all()
 
-with gzip.GzipFile('tz_world.pickled.gz') as f:
+with gzip.GzipFile(os.path.join(sys.path[0], 'tz_world.pickled.gz')) as f:
 	precision, shapes = pickle.load(f)
 zones = [worldview.TimeZone(tzid, [[(x/precision, y/precision) for x, y in pg] for pg in polygons]) for tzid, polygons in shapes]
 del shapes
